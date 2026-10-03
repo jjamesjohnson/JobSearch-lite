@@ -6,14 +6,18 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:main-stable
     container_name: jobsearch-litellm
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    # Bind-mount the config DIRECTORY (not the single file): if the host file
+    # were missing at create time, a single-file bind makes Docker silently
+    # create a DIRECTORY in its place, and the proxy then crash-loops with
+    # "IsADirectoryError: /app/config.yaml". Run compose from the repo root.
+    command: ["--config", "/app/config/litellm_config.yaml", "--port", "4000"]
     ports:
       # Bind to loopback only — reachable from this laptop, not the network.
       - "127.0.0.1:4000:4000"
     env_file:
       - .env
     volumes:
-      - ./config/litellm_config.yaml:/app/config.yaml:ro
+      - ./config:/app/config:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)\""]
