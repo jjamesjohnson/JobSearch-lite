@@ -51,6 +51,7 @@ Copy `.env.example` to `.env` and fill in what you need:
 |---|---|
 | `API_KEY` | All write endpoints + the console (sent as `X-API-Key`). |
 | `ANTHROPIC_API_KEY` | AI CV / cover-letter generation + agent search on Claude. |
+| `ANTHROPIC_WORKSPACE_ID` | Org-level Anthropic keys only (workspace-scoped keys don't need it). |
 | `DEEPSEEK_API_KEY` | CV → jobs matching. |
 | `GOOGLE_API_KEY` | AI CV / cover-letter generation + agent search on Gemini. |
 | `GITHUB_API_KEY` | The `gpt_*` model aliases (GitHub Models via litellm). |
