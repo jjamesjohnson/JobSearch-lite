@@ -12,9 +12,12 @@ LINKEDIN_USERNAME=your_email@example.com
 LINKEDIN_PASSWORD=your_secure_password
 
 # AI Model API Keys
+# Agents run on whichever provider key is set (ANTHROPIC_API_KEY -> Claude via
+# LiteLLM, GOOGLE_API_KEY -> Gemini); with both set, config/*.yaml *_model
+# selectors decide per agent.
+ANTHROPIC_API_KEY=your_claude_api_key
 GOOGLE_API_KEY=your_google_gemini_api_key
 OPENAI_API_KEY=your_openai_api_key
-ANTHROPIC_API_KEY=your_claude_api_key
 
 # API Configuration
 API_HOST=localhost

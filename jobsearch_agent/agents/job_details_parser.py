@@ -11,15 +11,12 @@ from typing_extensions import override
 from google.genai import types
 
 from google.adk.agents import BaseAgent, LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents.invocation_context import InvocationContext
-# from google.adk.tools import google_search
 from google.adk.events import Event
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
-# from google.genai import types
 
-from jobsearch_agent.utils.file_utils import load_config
+from jobsearch_agent.utils.file_utils import load_config, resolve_model
 # Import prompts to keep this file cleaner
 from jobsearch_agent.prompts.job_parsr_prompts import (
     bulk_text_parser_prompt,
@@ -141,13 +138,7 @@ def create_parse_bulk_text_agent():
 
     return LlmAgent(
         name="parseBulkText",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("parseBulkText_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("parseBulkText_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "parseBulkText_model"),
         instruction=bulk_text_parser_prompt,
         input_schema=None,
         output_key="parsed_data",

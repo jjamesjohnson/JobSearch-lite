@@ -32,6 +32,48 @@ def load_config(config_path: str) -> dict:
         config = yaml.safe_load(file)
     return config
 
+def resolve_model(config: dict, model_key: str):
+    """
+    Resolve the model backend for an agent from its config, driven by
+    which provider API key is set.
+
+    Selection rules:
+    - The model string mapped by `config["models"][config[model_key]]` wins
+      when its provider key is present (ANTHROPIC_API_KEY for "anthropic/..."
+      strings, GOOGLE_API_KEY for "gemini-..." strings; other strings pass
+      through unchanged for LiteLLM to handle).
+    - When that provider's key is missing but the other provider's key is
+      set, the backend swaps to the available provider.
+    - When no provider key is set at all, the configured model passes through
+      unchanged so agent construction never needs a key (the provider error
+      surfaces at call time instead).
+
+    Returns a raw Gemini model string (ADK's native Gemini path) or a
+    LiteLlm wrapper for every other provider.
+    """
+    models = config.get("models", {})
+    spec = models.get(config.get(model_key) or "", "")
+    if not spec:
+        spec = models.get("claude_sonnet", "anthropic/claude-sonnet-4-5")
+
+    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    has_google = bool(os.environ.get("GOOGLE_API_KEY"))
+
+    if spec.startswith("anthropic/") and not has_anthropic and has_google:
+        # Claude selected but only Gemini is configured: swap.
+        spec = models.get("gemini_2.5_flash", "gemini-2.5-flash")
+    elif spec.startswith("gemini-") and not has_google and has_anthropic:
+        # Gemini selected but only Claude is configured: swap.
+        spec = models.get("claude_sonnet", "anthropic/claude-sonnet-4-5")
+
+    if spec.startswith("gemini-"):
+        # Raw string: ADK resolves it to Gemini via google-genai.
+        return spec
+
+    from google.adk.models.lite_llm import LiteLlm
+
+    return LiteLlm(model=spec)
+
 def load_and_check_env() -> None:
     """
     Load environment variables from .env file and check API keys.
@@ -42,6 +84,7 @@ def load_and_check_env() -> None:
     dotenv.load_dotenv()
     # --- Verify Keys for Multiple LLMs ---
     required_keys = {
+        "Anthropic": "ANTHROPIC_API_KEY",
         "Google": "GOOGLE_API_KEY",
         "GPT_4O": "GPT_4O_API",
         "GPT_4_1": "GPT_4_1_API",

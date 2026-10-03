@@ -15,14 +15,13 @@ from typing import AsyncGenerator, Tuple
 from typing_extensions import override
 
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, SequentialAgent
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types
 
-from jobsearch_agent.utils.file_utils import load_config, load_docx_template, load_text_file
+from jobsearch_agent.utils.file_utils import load_config, load_docx_template, load_text_file, resolve_model
 from jobsearch_agent.utils.exit_conditions import ExitConditionAgent
 
 # Import prompts
@@ -149,13 +148,7 @@ def create_initial_draft_agent():
     """Create a new initial draft agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="InitialDraftGenerator",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("initial_draft_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("initial_draft_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "initial_draft_model"),
         instruction=initial_draft_prompt,
         input_schema=None,
         output_key="current_draft",
@@ -166,11 +159,7 @@ def create_critic_agent():
     """Create a new critic agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="Critic",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("critic_model")
-            else LiteLlm(model=agent_config["models"][agent_config.get("critic_model")])
-        ),
+        model=resolve_model(agent_config, "critic_model"),
         instruction=critic_prompt,
         input_schema=None,
         output_key="critic_feedback",
@@ -181,13 +170,7 @@ def create_fact_check_agent():
     """Create a new fact check agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="FactChecker",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("fact_check_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("fact_check_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "fact_check_model"),
         instruction=fact_check_prompt,
         input_schema=None,
         output_key="fact_check_report",
@@ -198,13 +181,7 @@ def create_reviser_agent():
     """Create a new reviser agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="Reviser",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("reviser_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("reviser_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "reviser_model"),
         instruction=reviser_prompt,
         input_schema=None,
         output_key="current_draft",
@@ -215,13 +192,7 @@ def create_grammar_check_agent():
     """Create a new grammar check agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="GrammarChecker",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("grammar_check_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("grammar_check_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "grammar_check_model"),
         instruction=grammar_check_prompt,
         input_schema=None,
         output_key="grammar_corrections",
@@ -232,13 +203,7 @@ def create_final_draft_agent():
     """Create a new final draft agent for each request to avoid parent conflicts"""
     return LlmAgent(
         name="FinalDraftGenerator",
-        model=(
-            agent_config["models"]["gemini_2.5_flash"]
-            if "gemini" in agent_config.get("final_draft_model")
-            else LiteLlm(
-                model=agent_config["models"][agent_config.get("final_draft_model")]
-            )
-        ),
+        model=resolve_model(agent_config, "final_draft_model"),
         instruction=final_draft_prompt,
         input_schema=None,
         output_key="final_draft",

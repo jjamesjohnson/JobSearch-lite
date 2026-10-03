@@ -276,6 +276,16 @@
 
               <label class="mb-3 block text-sm">
                 <span class="mb-1 flex items-center gap-2 text-slate-400">
+                  <span class="h-2 w-2 rounded-full" :class="config.status.anthropic_api_key && config.status.anthropic_api_key.set ? 'bg-emerald-400' : 'bg-slate-600'"></span>
+                  Anthropic API key <span class="text-slate-600">· Claude</span>
+                </span>
+                <input x-model="settings.anthropic_api_key" type="password"
+                  :placeholder="config.status.anthropic_api_key && config.status.anthropic_api_key.set ? '•••••• (set — leave blank to keep)' : 'sk-ant-…'"
+                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+              </label>
+
+              <label class="mb-3 block text-sm">
+                <span class="mb-1 flex items-center gap-2 text-slate-400">
                   <span class="h-2 w-2 rounded-full" :class="config.status.google_api_key && config.status.google_api_key.set ? 'bg-emerald-400' : 'bg-slate-600'"></span>
                   Google API key <span class="text-slate-600">· AI docs</span>
                 </span>
@@ -372,6 +382,7 @@
           history: [],
           config: { status: {} },
           settings: {
+            anthropic_api_key: '',
             deepseek_model: '',
             deepseek_api_key: '',
             google_api_key: '',
@@ -414,7 +425,7 @@
           loadSettings() {
             try {
               const stored = JSON.parse(localStorage.getItem('jsa_settings') || '{}');
-              for (const k of ['deepseek_model', 'deepseek_api_key', 'google_api_key', 'tavily_api_key']) {
+              for (const k of ['anthropic_api_key', 'deepseek_model', 'deepseek_api_key', 'google_api_key', 'tavily_api_key']) {
                 if (stored[k]) this.settings[k] = stored[k];
               }
             } catch { /* ignore corrupt storage */ }
@@ -424,6 +435,7 @@
 
           persistSettings() {
             localStorage.setItem('jsa_settings', JSON.stringify({
+              anthropic_api_key: this.settings.anthropic_api_key,
               deepseek_model: this.settings.deepseek_model,
               deepseek_api_key: this.settings.deepseek_api_key,
               google_api_key: this.settings.google_api_key,
@@ -433,7 +445,7 @@
 
           settingsPayload() {
             const p = {};
-            for (const k of ['deepseek_model', 'deepseek_api_key', 'google_api_key', 'tavily_api_key']) {
+            for (const k of ['anthropic_api_key', 'deepseek_model', 'deepseek_api_key', 'google_api_key', 'tavily_api_key']) {
               const v = (this.settings[k] || '').trim();
               if (v) p[k] = v;
             }
@@ -455,7 +467,7 @@
             if (!this.apiKey) return;
             const payload = this.settingsPayload();
             const s = this.config.status;
-            const missingSecret = ['deepseek_api_key', 'google_api_key', 'tavily_api_key']
+            const missingSecret = ['anthropic_api_key', 'deepseek_api_key', 'google_api_key', 'tavily_api_key']
               .some((k) => payload[k] && !(s[k] && s[k].set));
             const modelDiff = payload.deepseek_model
               && payload.deepseek_model !== (s.deepseek_model && s.deepseek_model.value);

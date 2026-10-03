@@ -2,24 +2,58 @@
 Search and scraping agents for Job Findr Agent.
 
 This module includes:
-- Google Search integration for finding job postings from LinkedIn, Indeed, and Glassdoor
+- Key-driven web search agents (Gemini + google_search grounding when
+  GOOGLE_API_KEY is set, Claude + Tavily when ANTHROPIC_API_KEY is set)
 - Targeted search query generation for better results
 - Job posting extraction and normalization
 """
 
 from google.adk.agents.llm_agent import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.langchain_tool import LangchainTool
 from langchain_community.tools import TavilySearchResults
 from google.adk.tools import google_search
+import dotenv
 import json
 import os
 import re
 
-from jobsearch_agent.utils.file_utils import load_config
+from jobsearch_agent.utils.file_utils import load_config, resolve_model
+
+dotenv.load_dotenv()
 
 jobsearch_config = load_config("config/jobsearch_config.yaml")
 file_config = load_config("config/file_config.yaml")
+
+# --- Tavily Search Tool (key-gated) ---
+# Build the LangChain Tavily tool only when a key is configured. TavilySearchResults
+# validates TAVILY_API_KEY at construction, so instantiating it at import time would
+# break environments without the key (e.g. CI smoke-test imports). When the key is
+# absent the agent is created with no Tavily tool; set TAVILY_API_KEY to enable it.
+_tavily_api_key = os.environ.get("TAVILY_API_KEY")
+if _tavily_api_key:
+    tavily_tool_instance = TavilySearchResults(
+        max_results=10,
+        search_depth="advanced",
+        include_answer=True,
+        tavily_api_key=_tavily_api_key,
+    )
+    adk_tavily_tool = LangchainTool(tool=tavily_tool_instance)
+    _tavily_tools = [adk_tavily_tool]
+else:
+    tavily_tool_instance = None
+    adk_tavily_tool = None
+    _tavily_tools = []
+
+# --- Key-driven model + tool selection ---
+# The backend follows whichever provider key is set: ANTHROPIC_API_KEY routes the
+# search agents to Claude via LiteLLM, GOOGLE_API_KEY routes them to Gemini; with
+# both keys set, the `search_model` selector in config/jobsearch_config.yaml
+# decides. The tool must follow the provider: ADK's google_search grounding only
+# works with Gemini models (resolve_model returns a raw string for Gemini and a
+# LiteLlm wrapper for everything else), so non-Gemini backends use the Tavily
+# tool instead (which requires TAVILY_API_KEY).
+search_model = resolve_model(jobsearch_config, "search_model")
+_search_tools = [google_search] if isinstance(search_model, str) else _tavily_tools
 
 # --- Specialized Job Search Functions ---
 
@@ -37,9 +71,9 @@ def generate_targeted_query(job_title, location, site):
     return site_queries.get(site.lower(), f"{job_title} {location} jobs {site}")
 
 
-# --- Google Search Agent with Progress Tracking ---
+# --- Job Search Agent with Progress Tracking ---
 google_search_agent = LlmAgent(
-    model=jobsearch_config["models"]["gemini_2.5_flash"],
+    model=search_model,
     name="google_search_agent",
     description="Finds job postings and extracts complete information from the job page.",
     instruction=(
@@ -77,14 +111,14 @@ google_search_agent = LlmAgent(
         "16. source_site\n\n"
         "Use structured JSON output. If any field is not available, leave it as an empty string."
     ),
-    tools=[google_search],
+    tools=_search_tools,
     output_key="job_postings",
 )
 
 # --- Multi-Site Job Search Agent ---
 multi_site_search_agent = LlmAgent(
     name="multi_site_job_search",
-    model=jobsearch_config["models"]["gemini_2.5_flash"],
+    model=search_model,
     description="Advanced agent that searches multiple job sites in sequence",
     instruction=(
         "You are a multi-site job search specialist. Your goal is to find job listings from multiple sources.\n\n"
@@ -123,34 +157,15 @@ multi_site_search_agent = LlmAgent(
         "- source_site: Which site the job was found on (LinkedIn, Indeed, or Glassdoor)\n\n"
         "Make sure each job entry is complete and properly formatted."
     ),
-    tools=[google_search],
+    tools=_search_tools,
     output_key="multi_site_job_results",
 )
 
-# --- Tavily Search Agent ---
-# Build the LangChain Tavily tool only when a key is configured. TavilySearchResults
-# validates TAVILY_API_KEY at construction, so instantiating it at import time would
-# break environments without the key (e.g. CI smoke-test imports). When the key is
-# absent the agent is created with no Tavily tool; set TAVILY_API_KEY to enable it.
-_tavily_api_key = os.environ.get("TAVILY_API_KEY")
-if _tavily_api_key:
-    tavily_tool_instance = TavilySearchResults(
-        max_results=10,
-        search_depth="advanced",
-        include_answer=True,
-        tavily_api_key=_tavily_api_key,
-    )
-    adk_tavily_tool = LangchainTool(tool=tavily_tool_instance)
-    _tavily_tools = [adk_tavily_tool]
-else:
-    tavily_tool_instance = None
-    adk_tavily_tool = None
-    _tavily_tools = []
 
 # Define the ADK agent for job searching
 tavily_search_agent = LlmAgent(
     name="job_search_agent",
-    model=LiteLlm(model=f"{jobsearch_config['models']['gpt_4o']}"),
+    model=search_model,
     description="Agent that searches for jobs online using keywords and a specified time frame.",
     instruction=(
         "You are an expert job search assistant. When given keywords and a time frame, "

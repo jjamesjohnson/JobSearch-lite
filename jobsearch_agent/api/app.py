@@ -312,6 +312,7 @@ async def health():
 # ---------------------------------------------------------------------------
 CONFIGURABLE_ENV = {
     # field name        : (ENV_VAR,            is_secret)
+    "anthropic_api_key":  ("ANTHROPIC_API_KEY", True),
     "deepseek_api_key":   ("DEEPSEEK_API_KEY",  True),
     "deepseek_model":     ("DEEPSEEK_MODEL",    False),
     "google_api_key":     ("GOOGLE_API_KEY",    True),
@@ -321,6 +322,7 @@ CONFIGURABLE_ENV = {
 
 class ConfigUpdate(BaseModel):
     """Partial runtime config; omit or leave blank to keep the current value."""
+    anthropic_api_key: Optional[str] = None
     deepseek_api_key: Optional[str] = None
     deepseek_model: Optional[str] = None
     google_api_key: Optional[str] = None

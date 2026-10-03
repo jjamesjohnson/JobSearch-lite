@@ -13,8 +13,17 @@ headless_browser: false # Whether to run the browser in headless mode
 max_search_pages: 5 # Maximum number of pages to scrape per search
 
 models:
+  claude_sonnet: "anthropic/claude-sonnet-4-5"
+  claude_haiku: "anthropic/claude-haiku-4-5"
   gemini_2.5_flash: "gemini-2.5-flash-preview-04-17"
   gemini_2.0_flash: "gemini-2.5-flash-lite"
   gpt_4o: "github/gpt-4o"
   gpt_41: "github/gpt-4.1"
   gpt_5: "github/gpt-5"
+
+# Agent settings
+# The search agents run Claude (via LiteLLM) when ANTHROPIC_API_KEY is set and
+# Gemini when GOOGLE_API_KEY is set. This selector only decides when BOTH keys
+# are present; the search tool follows the provider (google_search grounding
+# for Gemini, Tavily for everything else).
+search_model: "claude_sonnet"

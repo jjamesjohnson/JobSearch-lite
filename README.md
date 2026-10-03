@@ -50,12 +50,16 @@ Copy `.env.example` to `.env` and fill in what you need:
 | Variable | Needed for |
 |---|---|
 | `API_KEY` | All write endpoints + the console (sent as `X-API-Key`). |
+| `ANTHROPIC_API_KEY` | AI CV / cover-letter generation + agent search on Claude. |
 | `DEEPSEEK_API_KEY` | CV → jobs matching. |
-| `GOOGLE_API_KEY` | AI CV / cover-letter generation. |
+| `GOOGLE_API_KEY` | AI CV / cover-letter generation + agent search on Gemini. |
 | `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` | Scraping (use a throwaway account). |
-| `TAVILY_API_KEY` | Web-search agent (optional). |
+| `TAVILY_API_KEY` | Web-search agent when running on Claude (optional for Gemini). |
 
-You can also set the model and keys at runtime from the console's settings panel.
+Set `ANTHROPIC_API_KEY` (Claude via LiteLLM) or `GOOGLE_API_KEY` (Gemini) — the
+agents run on whichever is present; with both set, the `*_model` selectors in
+`config/*.yaml` decide per agent. You can also set the keys at runtime from the
+console's settings panel.
 
 ## API at a glance
 

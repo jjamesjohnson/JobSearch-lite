@@ -4,6 +4,8 @@ user_id: "dev_user_01"
 session_id: "session_01"
 
 models:
+  claude_sonnet: "anthropic/claude-sonnet-4-5"
+  claude_haiku: "anthropic/claude-haiku-4-5"
   gemini_2.5_flash: "gemini-2.5-flash"
   gemini_2.0_flash: "gemini-2.5-flash-lite"
   gpt_4o: "github/gpt-4o"
@@ -11,12 +13,15 @@ models:
   gpt_5: "github/gpt-5"
 
 # Agent settings
-initial_draft_model: "gpt_41"
-critic_model: "gpt_41"
-fact_check_model: "gpt_41"
-reviser_model: "gpt_41"
-grammar_check_model: "gpt_41"
-final_draft_model: "gpt_41"
+# Selectors decide per-agent models when BOTH provider keys are set; with only
+# one of ANTHROPIC_API_KEY / GOOGLE_API_KEY present, every agent runs on that
+# provider regardless of these selectors.
+initial_draft_model: "claude_sonnet"
+critic_model: "claude_haiku"
+fact_check_model: "claude_haiku"
+reviser_model: "claude_sonnet"
+grammar_check_model: "claude_haiku"
+final_draft_model: "claude_sonnet"
 
 max_loop_iterations: 5
 logging_level: "WARNING"
