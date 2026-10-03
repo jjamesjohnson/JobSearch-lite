@@ -1,8 +1,35 @@
 services:
+  # LiteLLM proxy: fronts every LLM provider over one OpenAI-compatible
+  # endpoint (:4000). Provider keys are read from .env HERE (on the proxy);
+  # the app container only needs LITELLM_MASTER_KEY. The proxy serves the
+  # model_list entries from config/litellm_config.yaml by name.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: jobsearch-litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    ports:
+      # Bind to loopback only — reachable from this laptop, not the network.
+      - "127.0.0.1:4000:4000"
+    env_file:
+      - .env
+    volumes:
+      - ./config/litellm_config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   jobsearch:
     build: .
     image: jobsearch-agent:dev
     container_name: jobsearch-agent
+    depends_on:
+      # Started, not healthy: the app falls back to direct provider calls
+      # (provider keys flow in via env_file) when the proxy is unreachable.
+      - litellm
     ports:
       # Bind to loopback only — reachable from this laptop, not the network.
       - "127.0.0.1:8080:8080"
@@ -10,6 +37,11 @@ services:
       - .env
     environment:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      # Route all LLM traffic through the litellm proxy service. Together
+      # with LITELLM_MASTER_KEY (from .env) this makes resolve_model use
+      # the proxy for every backend; unset LITELLM_MASTER_KEY in .env to
+      # call providers directly from the app instead.
+      LITELLM_PROXY_URL: http://litellm:4000
     volumes:
       # Persist generated artifacts across container restarts.
       - ./output:/app/output

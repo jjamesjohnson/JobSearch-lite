@@ -53,13 +53,19 @@ Copy `.env.example` to `.env` and fill in what you need:
 | `ANTHROPIC_API_KEY` | AI CV / cover-letter generation + agent search on Claude. |
 | `DEEPSEEK_API_KEY` | CV → jobs matching. |
 | `GOOGLE_API_KEY` | AI CV / cover-letter generation + agent search on Gemini. |
+| `GITHUB_API_KEY` | The `gpt_*` model aliases (GitHub Models via litellm). |
 | `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` | Scraping (use a throwaway account). |
 | `TAVILY_API_KEY` | Web-search agent when running on Claude (optional for Gemini). |
+| `LITELLM_MASTER_KEY` | Optional: route all model traffic through the `litellm` proxy service (must start with `sk-`). |
 
 Set `ANTHROPIC_API_KEY` (Claude via LiteLLM) or `GOOGLE_API_KEY` (Gemini) — the
 agents run on whichever is present; with both set, the `*_model` selectors in
 `config/*.yaml` decide per agent. You can also set the keys at runtime from the
 console's settings panel.
+
+With `LITELLM_MASTER_KEY` set (and the compose stack running), every backend —
+including Gemini — goes through the `litellm` proxy service instead of being
+called directly; provider keys then only need to exist on the proxy.
 
 ## API at a glance
 

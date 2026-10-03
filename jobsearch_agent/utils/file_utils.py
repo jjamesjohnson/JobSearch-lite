@@ -38,8 +38,13 @@ def resolve_model(config: dict, model_key: str):
     which provider API key is set.
 
     Selection rules:
-    - The model string mapped by `config["models"][config[model_key]]` wins
-      when its provider key is present (ANTHROPIC_API_KEY for "anthropic/..."
+    - When a LiteLLM proxy is configured (LITELLM_PROXY_URL + LITELLM_MASTER_KEY
+      both set), every backend routes through the proxy: the provider keys then
+      live on the proxy, not in this process. The proxy serves the model_list
+      entries from config/litellm_config.yaml by name over its OpenAI-compatible
+      endpoint.
+    - Otherwise, the model string mapped by `config["models"][config[model_key]]`
+      wins when its provider key is present (ANTHROPIC_API_KEY for "anthropic/..."
       strings, GOOGLE_API_KEY for "gemini-..." strings; other strings pass
       through unchanged for LiteLLM to handle).
     - When that provider's key is missing but the other provider's key is
@@ -55,6 +60,19 @@ def resolve_model(config: dict, model_key: str):
     spec = models.get(config.get(model_key) or "", "")
     if not spec:
         spec = models.get("claude_sonnet", "anthropic/claude-sonnet-4-5")
+
+    # Proxy mode: route every backend through the LiteLLM proxy. Strip any
+    # provider prefix from the spec; the proxy serves model_list entries by
+    # name, addressed with the openai/ provider + api_base.
+    proxy_url = os.environ.get("LITELLM_PROXY_URL")
+    proxy_key = os.environ.get("LITELLM_MASTER_KEY")
+    if proxy_url and proxy_key:
+        from google.adk.models.lite_llm import LiteLlm
+
+        name = spec.split("/", 1)[1] if "/" in spec else spec
+        return LiteLlm(
+            model=f"openai/{name}", api_base=proxy_url, api_key=proxy_key
+        )
 
     has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
     has_google = bool(os.environ.get("GOOGLE_API_KEY"))
