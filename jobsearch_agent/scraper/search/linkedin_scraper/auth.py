@@ -113,8 +113,15 @@ class AuthManager:
             await password_field.fill("")  # Clear the field
             for char in password:
                 await password_field.type(char)
-                await asyncio.sleep(random.uniform(0.05, 0.2))            # Click the login button
-            login_button = await self.page.query_selector(LOGIN_FORM_SELECTORS["submit"])
+                await asyncio.sleep(random.uniform(0.05, 0.2))
+
+            # Click the login button. The current LinkedIn markup renders the
+            # credential submit as a plain type="button" whose text is shared
+            # with "Sign in with Apple", so target the exact accessible name;
+            # fall back to the legacy submit selector.
+            login_button = self.page.get_by_role("button", name="Sign in", exact=True).first
+            if not await login_button.count():
+                login_button = self.page.locator(LOGIN_FORM_SELECTORS["submit"]).first
             await login_button.click()
 
             # Wait for the login to complete

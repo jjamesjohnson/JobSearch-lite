@@ -306,14 +306,19 @@ PAGE_BUTTON_SELECTORS = [
 ]
 
 # Authentication selectors
-# NOTE: LinkedIn randomizes login input ids per page load (e.g. id="_r_9_");
-# #username/#password only match the legacy form. The stable hooks are
-# type/autocomplete attributes, matched via comma-separated CSS lists
-# (first match wins) so both form variants are covered.
+# NOTE: LinkedIn's current login page renders TWO copies of the form — a
+# hidden template first, the visible live form second — and randomizes input
+# ids per page load (e.g. id="_r_9_"); #username/#password only match the
+# legacy form. Match via stable attributes (autocomplete/type) and Playwright's
+# :visible pseudo-class so the hidden template copies never match. Comma
+# lists are first-match-wins.
 LOGIN_FORM_SELECTORS = {
-    "username": "#username, input[autocomplete~='username'], input[type='email']",
-    "password": "#password, input[name='password'], input[type='password']",
-    "submit": "button[type='submit']",
+    "username": "#username:visible, input[autocomplete~='username']:visible, input[type='email']:visible",
+    "password": "#password:visible, input[name='password']:visible, input[type='password']:visible",
+    # Legacy fallback only: on the current markup the credential submit is a
+    # plain type="button" that shares its text with "Sign in with Apple", so
+    # auth.py targets it by exact accessible name instead.
+    "submit": "button[type='submit']:visible",
 }
 
 LOGGED_IN_INDICATORS = [
