@@ -306,9 +306,13 @@ PAGE_BUTTON_SELECTORS = [
 ]
 
 # Authentication selectors
+# NOTE: LinkedIn randomizes login input ids per page load (e.g. id="_r_9_");
+# #username/#password only match the legacy form. The stable hooks are
+# type/autocomplete attributes, matched via comma-separated CSS lists
+# (first match wins) so both form variants are covered.
 LOGIN_FORM_SELECTORS = {
-    "username": "#username",
-    "password": "#password",
+    "username": "#username, input[autocomplete~='username'], input[type='email']",
+    "password": "#password, input[name='password'], input[type='password']",
     "submit": "button[type='submit']",
 }
 
