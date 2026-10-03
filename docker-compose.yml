@@ -24,7 +24,10 @@ services:
 
   jobsearch:
     build: .
-    image: jobsearch-agent:dev
+    # Published by .github/workflows/docker-publish.yml (anonymous pulls —
+    # repo is public). `docker-compose pull && docker-compose up -d` uses
+    # the registry image; `docker-compose up --build` forces a local rebuild.
+    image: ghcr.io/jjamesjohnson/jobsearch-lite:main
     container_name: jobsearch-agent
     depends_on:
       # Started, not healthy: the app falls back to direct provider calls

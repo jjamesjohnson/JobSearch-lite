@@ -67,6 +67,21 @@ With `LITELLM_MASTER_KEY` set (and the compose stack running), every backend —
 including Gemini — goes through the `litellm` proxy service instead of being
 called directly; provider keys then only need to exist on the proxy.
 
+## Docker image
+
+Every push to `main` builds and publishes the image to GHCR
+(`.github/workflows/docker-publish.yml`; the repo is public, so pulls are
+anonymous):
+
+```bash
+# Pull the published image instead of building locally:
+docker-compose pull jobsearch
+docker-compose up -d
+
+# Or force a local build from your checkout:
+docker-compose up --build
+```
+
 ## API at a glance
 
 | Endpoint | Purpose |
